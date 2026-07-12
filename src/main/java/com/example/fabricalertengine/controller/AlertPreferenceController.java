@@ -4,6 +4,7 @@ import com.example.fabricalertengine.entity.AlertPreference;
 import com.example.fabricalertengine.entity.User;
 import com.example.fabricalertengine.repository.AlertPreferenceRepository;
 import com.example.fabricalertengine.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +38,7 @@ public class AlertPreferenceController {
     }
 
     @PostMapping
-    public ResponseEntity<AlertPreference> createAlertPreference(@RequestBody AlertPreference alertPreference, Principal principal) {
+    public ResponseEntity<AlertPreference> createAlertPreference(@Valid @RequestBody AlertPreference alertPreference, Principal principal) {
         User owner = userRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new IllegalStateException("Logged-in user not found: " + principal.getName()));
         alertPreference.setUser(owner);
@@ -47,7 +48,7 @@ public class AlertPreferenceController {
 
     @PutMapping("/{id}")
     public ResponseEntity<AlertPreference> updateAlertPreference(@PathVariable Long id,
-                                                                 @RequestBody AlertPreference updatedAlertPreference,
+                                                                 @Valid @RequestBody AlertPreference updatedAlertPreference,
                                                                  Principal principal) {
         return alertPreferenceRepository.findById(id)
                 .filter(preference -> preference.getUser().getEmail().equals(principal.getName()))

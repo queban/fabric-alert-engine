@@ -2,6 +2,7 @@ package com.example.fabricalertengine.controller;
 
 import com.example.fabricalertengine.entity.User;
 import com.example.fabricalertengine.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,14 +35,14 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
         user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
         User saved = userRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User updatedUser) {
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody User updatedUser) {
         return userRepository.findById(id)
                 .map(existingUser -> {
                     existingUser.setEmail(updatedUser.getEmail());
