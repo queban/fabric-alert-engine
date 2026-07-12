@@ -3,7 +3,7 @@ package com.example.fabricalertengine.controller;
 import com.example.fabricalertengine.entity.Fabric;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import jakarta.validation.Valid;
 import java.util.List;
 import com.example.fabricalertengine.repository.FabricRepository;
 import org.springframework.http.HttpStatus;
@@ -32,7 +32,7 @@ public class FabricController {
     }
 
     @PostMapping
-    public ResponseEntity<Fabric> createFabric(@RequestBody Fabric fabric) {
+    public ResponseEntity<Fabric> createFabric(@Valid @RequestBody Fabric fabric) {
         Fabric saved = fabricRepository.save(fabric);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }

@@ -2,6 +2,8 @@ package com.example.fabricalertengine.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 
 @Entity
 @Table(name = "fabrics")
@@ -11,10 +13,15 @@ public class Fabric {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     private String name;
 
+    @Positive
     @Column(precision = 10, scale = 2)
     private BigDecimal currentPricePerYard;
+
+
+
 
     // Getters and Setters
     public Long getId() { return id; }
