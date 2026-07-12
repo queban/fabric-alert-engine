@@ -1,11 +1,14 @@
 package com.example.fabricalertengine.controller;
 
 import com.example.fabricalertengine.entity.AlertPreference;
+import com.example.fabricalertengine.entity.User;
 import com.example.fabricalertengine.repository.AlertPreferenceRepository;
+import com.example.fabricalertengine.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -13,34 +16,42 @@ import java.util.List;
 public class AlertPreferenceController {
 
     private final AlertPreferenceRepository alertPreferenceRepository;
+    private final UserRepository userRepository;
 
-    public AlertPreferenceController(AlertPreferenceRepository alertPreferenceRepository) {
+    public AlertPreferenceController(AlertPreferenceRepository alertPreferenceRepository, UserRepository userRepository) {
         this.alertPreferenceRepository = alertPreferenceRepository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping
-    public List<AlertPreference> getAllAlertPreferences() {
-        return alertPreferenceRepository.findAll();
+    public List<AlertPreference> getAllAlertPreferences(Principal principal) {
+        return alertPreferenceRepository.findByUserEmail(principal.getName());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AlertPreference> getAlertPreferenceById(@PathVariable Long id) {
+    public ResponseEntity<AlertPreference> getAlertPreferenceById(@PathVariable Long id, Principal principal) {
         return alertPreferenceRepository.findById(id)
+                .filter(preference -> preference.getUser().getEmail().equals(principal.getName()))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<AlertPreference> createAlertPreference(@RequestBody AlertPreference alertPreference) {
+    public ResponseEntity<AlertPreference> createAlertPreference(@RequestBody AlertPreference alertPreference, Principal principal) {
+        User owner = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new IllegalStateException("Logged-in user not found: " + principal.getName()));
+        alertPreference.setUser(owner);
         AlertPreference saved = alertPreferenceRepository.save(alertPreference);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AlertPreference> updateAlertPreference(@PathVariable Long id, @RequestBody AlertPreference updatedAlertPreference) {
+    public ResponseEntity<AlertPreference> updateAlertPreference(@PathVariable Long id,
+                                                                 @RequestBody AlertPreference updatedAlertPreference,
+                                                                 Principal principal) {
         return alertPreferenceRepository.findById(id)
+                .filter(preference -> preference.getUser().getEmail().equals(principal.getName()))
                 .map(existingAlertPreference -> {
-                    existingAlertPreference.setUser(updatedAlertPreference.getUser());
                     existingAlertPreference.setFabric(updatedAlertPreference.getFabric());
                     existingAlertPreference.setTargetPrice(updatedAlertPreference.getTargetPrice());
                     AlertPreference saved = alertPreferenceRepository.save(existingAlertPreference);
@@ -50,11 +61,13 @@ public class AlertPreferenceController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAlertPreference(@PathVariable Long id) {
-        if (!alertPreferenceRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        alertPreferenceRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deleteAlertPreference(@PathVariable Long id, Principal principal) {
+        return alertPreferenceRepository.findById(id)
+                .filter(preference -> preference.getUser().getEmail().equals(principal.getName()))
+                .map(preference -> {
+                    alertPreferenceRepository.delete(preference);
+                    return ResponseEntity.noContent().<Void>build();
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }
