@@ -35,7 +35,10 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+    public ResponseEntity<?> createUser(@Valid @RequestBody User user) {
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already in use: " + user.getEmail());
+        }
         user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
         User saved = userRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
