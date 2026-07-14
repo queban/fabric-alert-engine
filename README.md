@@ -11,7 +11,7 @@ exercised end to end without a paid price-feed API.
 ## Features
 
 - Sign up and log in from the browser
-- Live price board — prices refresh automatically every 30 seconds
+- Live price board, prices refresh automatically every 30 seconds
 - Set a target price on any fabric; setting a new target on the same fabric updates it (no duplicate alerts)
 - Automatic email notification when a price falls to your target — sent once per price drop, re-armed when the price recovers
 - "My alerts" page to view and remove your alerts
@@ -85,9 +85,9 @@ exercised end to end without a paid price-feed API.
 
 Two scheduled jobs drive everything:
 
-- **Price simulation** (every 5 minutes) — nudges each fabric's price by a random percentage
-  between −10% and +10%, with a $5.00 floor.
-- **Alert check** (every 60 seconds) — compares each user's target price against the current
+- **Price simulation** (every 5 minutes) nudges each fabric's price by a random percentage
+  between 10% and +10%, with a $5.00 floor.
+- **Alert check** (every 60 seconds) compares each user's target price against the current
   price of the fabric they're watching. When the price is at or below the target, it sends an
   email and marks the alert as notified so the user isn't spammed every minute; the flag resets
   once the price climbs back above the target, so the next drop alerts again.
