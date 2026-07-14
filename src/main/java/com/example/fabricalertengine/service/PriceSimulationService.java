@@ -25,18 +25,20 @@ public class PriceSimulationService {
         List<Fabric> fabrics = fabricRepository.findAll();
         for (Fabric fabric : fabrics) {
             double percentChange = random.nextDouble() * 0.2 - 0.1;
-
-            BigDecimal newPrice = fabric.getCurrentPricePerYard()
-                    .multiply(BigDecimal.valueOf(1 + percentChange))
-                    .setScale(2, RoundingMode.HALF_UP);
-
-            if (newPrice.compareTo(FLOOR) < 0) {
-                newPrice = FLOOR;
-            }
-
-            fabric.setCurrentPricePerYard(newPrice);
+            fabric.setCurrentPricePerYard(calculateNewPrice(fabric.getCurrentPricePerYard(), percentChange));
         }
         fabricRepository.saveAll(fabrics);
         System.out.println("Simulated new prices for " + fabrics.size() + " fabrics");
+    }
+
+    BigDecimal calculateNewPrice(BigDecimal currentPrice, double percentChange) {
+        BigDecimal newPrice = currentPrice
+                .multiply(BigDecimal.valueOf(1 + percentChange))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        if (newPrice.compareTo(FLOOR) < 0) {
+            return FLOOR;
+        }
+        return newPrice;
     }
 }

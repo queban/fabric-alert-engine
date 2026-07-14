@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/alert-preferences")
@@ -39,6 +40,17 @@ public class AlertPreferenceController {
 
     @PostMapping
     public ResponseEntity<AlertPreference> createAlertPreference(@Valid @RequestBody AlertPreference alertPreference, Principal principal) {
+        Optional<AlertPreference> existing = alertPreferenceRepository
+                .findByUserEmailAndFabricId(principal.getName(), alertPreference.getFabric().getId());
+
+        if (existing.isPresent()) {
+            AlertPreference existingPreference = existing.get();
+            existingPreference.setTargetPrice(alertPreference.getTargetPrice());
+            existingPreference.setAlreadyNotified(false);
+            AlertPreference saved = alertPreferenceRepository.save(existingPreference);
+            return ResponseEntity.ok(saved);
+        }
+
         User owner = userRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new IllegalStateException("Logged-in user not found: " + principal.getName()));
         alertPreference.setUser(owner);
