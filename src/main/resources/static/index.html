@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fabric Price Board</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 850px; margin: 40px auto; }
+        table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+        th { background: #f0f0f0; }
+        td.price { text-align: right; }
+        #updated { color: #666; font-size: 0.9em; }
+        .panel { background: #f7f7f7; border: 1px solid #ddd; padding: 10px 14px; margin-top: 15px; }
+        .panel input { margin-right: 6px; }
+        #login-status { font-weight: bold; margin-left: 8px; }
+        .target-input { width: 70px; }
+        #message { min-height: 1.2em; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<h1>Fabric Price Board</h1>
+<p id="updated">Loading...</p>
+
+<div class="panel">
+    <b>Login:</b>
+    <input id="login-email" placeholder="email">
+    <input id="login-password" type="password" placeholder="password">
+    <button onclick="login()">Log in</button>
+    <button onclick="logout()">Log out</button>
+    <span id="login-status">not logged in</span>
+</div>
+
+<div class="panel">
+    <b>Sign up:</b>
+    <input id="signup-email" placeholder="email">
+    <input id="signup-password" type="password" placeholder="password">
+    <input id="signup-phone" placeholder="phone number">
+    <button onclick="signUp()">Create account</button>
+</div>
+
+<div class="panel">
+    <b>Add fabric:</b>
+    <input id="new-name" placeholder="fabric name" size="30">
+    <input id="new-price" type="number" step="0.01" placeholder="price/yard">
+    <button onclick="addFabric()">Add</button>
+</div>
+
+<p id="message"></p>
+
+<table>
+    <thead>
+    <tr>
+        <th>Fabric</th>
+        <th>Price / yard</th>
+        <th>Alert me at</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody id="fabric-rows">
+    </tbody>
+</table>
+
+<script>
+    // Filled in by login(); null means "not logged in yet".
+    let credentials = null;
+
+    function authHeader() {
+        return { "Authorization": "Basic " + btoa(credentials) };
+    }
+
+    function showMessage(text, isError) {
+        const el = document.getElementById("message");
+        el.textContent = text;
+        el.style.color = isError ? "#b00020" : "#2e7d32";
+    }
+
+    async function login() {
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+        const attempt = email + ":" + password;
+
+        // Test the credentials against a protected endpoint.
+        const response = await fetch("/api/alert-preferences", {
+            headers: { "Authorization": "Basic " + btoa(attempt) }
+        });
+
+        if (response.ok) {
+            credentials = attempt;
+            document.getElementById("login-status").textContent = "logged in as " + email;
+            showMessage("Login successful.", false);
+        } else {
+            credentials = null;
+            document.getElementById("login-status").textContent = "not logged in";
+            showMessage("Login failed (" + response.status + ") — check email/password.", true);
+        }
+    }
+
+    function logout() {
+        credentials = null;
+        document.getElementById("login-status").textContent = "not logged in";
+        showMessage("Logged out.", false);
+    }
+
+    async function signUp() {
+        const email = document.getElementById("signup-email").value;
+        const password = document.getElementById("signup-password").value;
+        const phone = document.getElementById("signup-phone").value;
+
+        const response = await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email, passwordHash: password, phoneNumber: phone })
+        });
+
+        if (response.ok) {
+            showMessage("Account created for " + email + " — you can log in now.", false);
+            document.getElementById("signup-password").value = "";
+        } else if (response.status === 409) {
+            showMessage("That email is already registered.", true);
+        } else {
+            showMessage("Sign-up failed (" + response.status + ") — all three fields are required.", true);
+        }
+    }
+
+    function requireLogin() {
+        if (credentials === null) {
+            showMessage("Log in first.", true);
+            return false;
+        }
+        return true;
+    }
+
+    async function addFabric() {
+        if (!requireLogin()) return;
+
+        const name = document.getElementById("new-name").value;
+        const price = document.getElementById("new-price").value;
+
+        const response = await fetch("/api/fabrics", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeader() },
+            body: JSON.stringify({ name: name, currentPricePerYard: price })
+        });
+
+        if (response.ok) {
+            showMessage("Added \"" + name + "\".", false);
+            document.getElementById("new-name").value = "";
+            document.getElementById("new-price").value = "";
+            loadPrices();
+        } else {
+            showMessage("Add failed (" + response.status + ") — name and a positive price are required.", true);
+        }
+    }
+
+    async function deleteFabric(id, name) {
+        if (!requireLogin()) return;
+        if (!confirm("Delete \"" + name + "\"?")) return;
+
+        const response = await fetch("/api/fabrics/" + id, {
+            method: "DELETE",
+            headers: authHeader()
+        });
+
+        if (response.ok) {
+            showMessage("Deleted \"" + name + "\".", false);
+            loadPrices();
+        } else {
+            showMessage("Delete failed (" + response.status + ") — someone may have an alert set on it.", true);
+        }
+    }
+
+    async function setAlert(fabricId, name) {
+        if (!requireLogin()) return;
+
+        const input = document.getElementById("target-" + fabricId);
+        const target = input.value;
+
+        const response = await fetch("/api/alert-preferences", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeader() },
+            body: JSON.stringify({ fabric: { id: fabricId }, targetPrice: target })
+        });
+
+        if (response.ok) {
+            showMessage("Alert set: " + name + " at $" + target + ".", false);
+            input.value = "";
+        } else {
+            showMessage("Setting alert failed (" + response.status + ") — target must be a positive number.", true);
+        }
+    }
+
+    async function loadPrices() {
+        const response = await fetch("/api/fabrics");
+        const fabrics = await response.json();
+
+        const tbody = document.getElementById("fabric-rows");
+        tbody.innerHTML = "";
+
+        for (const fabric of fabrics) {
+            const row = document.createElement("tr");
+
+            const nameCell = document.createElement("td");
+            nameCell.textContent = fabric.name;
+            row.appendChild(nameCell);
+
+            const priceCell = document.createElement("td");
+            priceCell.className = "price";
+            priceCell.textContent = "$" + fabric.currentPricePerYard.toFixed(2);
+            row.appendChild(priceCell);
+
+            const alertCell = document.createElement("td");
+            const targetInput = document.createElement("input");
+            targetInput.id = "target-" + fabric.id;
+            targetInput.type = "number";
+            targetInput.step = "0.01";
+            targetInput.className = "target-input";
+            const alertButton = document.createElement("button");
+            alertButton.textContent = "Set alert";
+            alertButton.onclick = () => setAlert(fabric.id, fabric.name);
+            alertCell.appendChild(targetInput);
+            alertCell.appendChild(alertButton);
+            row.appendChild(alertCell);
+
+            const deleteCell = document.createElement("td");
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Delete";
+            deleteButton.onclick = () => deleteFabric(fabric.id, fabric.name);
+            deleteCell.appendChild(deleteButton);
+            row.appendChild(deleteCell);
+
+            tbody.appendChild(row);
+        }
+
+        document.getElementById("updated").textContent =
+            "Last updated: " + new Date().toLocaleTimeString();
+    }
+
+    loadPrices();
+    setInterval(loadPrices, 30000);
+</script>
+
+</body>
+</html>
