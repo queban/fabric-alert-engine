@@ -1,6 +1,7 @@
 package com.example.fabricalertengine.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
@@ -23,6 +24,7 @@ public class AlertPreference {
     @Column(columnDefinition = "boolean default false")
     private boolean alreadyNotified = false;
 
+    @NotNull
     @Positive
     @Column(precision = 10, scale = 2, nullable = false)
     private BigDecimal targetPrice;

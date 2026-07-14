@@ -3,6 +3,7 @@ package com.example.fabricalertengine.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 @Entity
@@ -16,6 +17,7 @@ public class Fabric {
     @NotBlank
     private String name;
 
+    @NotNull
     @Positive
     @Column(precision = 10, scale = 2)
     private BigDecimal currentPricePerYard;
