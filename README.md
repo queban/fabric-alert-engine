@@ -1,7 +1,7 @@
 # Fabric Alert Engine
 
 A full-stack price-tracking app for fabric sourcing. Users sign up, watch fabrics on a live
-price board, and set a target price per fabric — when a fabric's price drops to their target,
+price board, and set a target price per fabric  when a fabric's price drops to their target,
 the app automatically sends them an email alert.
 
 Prices are simulated: a scheduled background job applies a small random change (±10%) to every
@@ -13,7 +13,7 @@ exercised end to end without a paid price-feed API.
 - Sign up and log in from the browser
 - Live price board, prices refresh automatically every 30 seconds
 - Set a target price on any fabric; setting a new target on the same fabric updates it (no duplicate alerts)
-- Automatic email notification when a price falls to your target — sent once per price drop, re-armed when the price recovers
+- Automatic email notification when a price falls to your target  sent once per price drop, re-armed when the price recovers
 - "My alerts" page to view and remove your alerts
 - Per-user privacy: users can only ever see and manage their own alerts
 - Add and remove fabrics from the board (login required; viewing is public)
@@ -46,7 +46,7 @@ exercised end to end without a paid price-feed API.
    CREATE DATABASE fabric_alerts;
    ```
 
-2. Create `src/main/resources/application.properties` (gitignored — it holds credentials):
+2. Create `src/main/resources/application.properties` (gitignored  it holds credentials):
 
    ```properties
    spring.application.name=fabric-alert-engine
